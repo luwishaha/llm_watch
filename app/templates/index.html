@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>llm-watch Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script defer src="/static/app.js"></script>
+  <style>
+    :root {
+      --bg: #f4f0e8;
+      --panel: #fffdf8;
+      --ink: #1f2a30;
+      --muted: #68757c;
+      --accent: #cb5f35;
+      --accent-soft: #f3d2c6;
+      --line: #ded6ca;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, #fef5de, transparent 30%),
+        radial-gradient(circle at top right, #f7d1c4, transparent 25%),
+        var(--bg);
+    }
+    .shell { max-width: 1180px; margin: 0 auto; padding: 24px; }
+    .hero {
+      background: linear-gradient(135deg, rgba(203,95,53,.95), rgba(106,132,145,.92));
+      color: #fff;
+      padding: 28px;
+      border-radius: 24px;
+      box-shadow: 0 18px 50px rgba(73, 53, 44, .18);
+    }
+    .hero h1 { margin: 0 0 8px; font-size: 36px; }
+    .hero p { margin: 0; max-width: 700px; line-height: 1.6; }
+    nav { display: flex; gap: 12px; margin: 20px 0 24px; flex-wrap: wrap; }
+    nav a {
+      text-decoration: none;
+      color: var(--ink);
+      background: rgba(255,255,255,.8);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 16px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+    .card, .panel {
+      background: var(--panel);
+      border: 1px solid rgba(124, 107, 92, .14);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 0 12px 30px rgba(52, 44, 39, .06);
+    }
+    .metric-label { color: var(--muted); font-size: 14px; }
+    .metric-value { font-size: 30px; font-weight: 700; margin-top: 12px; }
+    .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+    .panel h2 { margin: 0 0 14px; font-size: 18px; }
+    .chart { width: 100%; height: 320px; }
+    .list { margin: 0; padding: 0; list-style: none; }
+    .list li { padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .list li:last-child { border-bottom: 0; }
+    @media (max-width: 960px) {
+      .grid, .panels { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body data-page="index">
+  <div class="shell">
+    <section class="hero">
+      <h1>llm-watch</h1>
+      <p>轻量监测 DeepSeek、DashScope、Qianfan 的可用性、TTFT、生成速度、缓存效果与评测结果。</p>
+    </section>
+    <nav>
+      <a href="/">Dashboard</a>
+      <a href="/compare">Compare</a>
+      <a href="/evals">Evals</a>
+    </nav>
+    <section class="grid" id="summary-cards">
+      <article class="card"><div class="metric-label">24h Availability</div><div class="metric-value" id="metric-availability">-</div></article>
+      <article class="card"><div class="metric-label">24h Avg TTFT</div><div class="metric-value" id="metric-ttft">-</div></article>
+      <article class="card"><div class="metric-label">24h Avg TPS</div><div class="metric-value" id="metric-tps">-</div></article>
+      <article class="card"><div class="metric-label">Latest Custom Eval</div><div class="metric-value" id="metric-eval">-</div></article>
+    </section>
+    <section class="panels">
+      <article class="panel">
+        <h2>Availability 24h</h2>
+        <div id="chart-availability" class="chart"></div>
+      </article>
+      <article class="panel">
+        <h2>Avg TTFT 24h</h2>
+        <div id="chart-ttft" class="chart"></div>
+      </article>
+      <article class="panel">
+        <h2>Avg TPS 24h</h2>
+        <div id="chart-tps" class="chart"></div>
+      </article>
+      <article class="panel">
+        <h2>Latest Custom Eval</h2>
+        <ul class="list" id="latest-evals"></ul>
+      </article>
+    </section>
+  </div>
+</body>
+</html>

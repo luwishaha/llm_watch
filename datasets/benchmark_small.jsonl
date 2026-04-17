@@ -1,0 +1,4 @@
+{"id":"b1","prompt":"请只回答：北京","expected":"北京","scoring":"exact","tags":["fact"]}
+{"id":"b2","prompt":"请用一句话说明缓存探测的作用，并包含“缓存”二字。","expected":"缓存","scoring":"contains","tags":["cache"]}
+{"id":"b3","prompt":"请输出：status=ok","expected":"status=ok","scoring":"regex","tags":["format"]}
+{"id":"b4","prompt":"请输出 JSON：{\"status\":\"ok\",\"score\":1}","expected":"","scoring":"json_schema","schema":{"type":"object","properties":{"status":{"type":"string"},"score":{"type":"number"}},"required":["status","score"]},"tags":["json"]}

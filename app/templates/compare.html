@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>llm-watch Compare</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script defer src="/static/app.js"></script>
+  <style>
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", sans-serif; background: #f6f6f2; color: #202325; }
+    .shell { max-width: 1180px; margin: 0 auto; padding: 24px; }
+    .hero {
+      padding: 24px;
+      border-radius: 24px;
+      background: linear-gradient(120deg, #143642, #2d6a73 50%, #f59f6c 110%);
+      color: white;
+    }
+    nav { display: flex; gap: 12px; margin: 20px 0; flex-wrap: wrap; }
+    nav a { text-decoration: none; color: #143642; background: white; padding: 10px 16px; border-radius: 999px; border: 1px solid #d7d7cf; }
+    .panel { background: white; border: 1px solid #dfded4; border-radius: 20px; padding: 18px; margin-bottom: 16px; box-shadow: 0 10px 24px rgba(35, 42, 47, .05); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid #eceae3; font-size: 14px; }
+    th { color: #5d686e; font-weight: 600; }
+    .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .chart { width: 100%; height: 320px; }
+    @media (max-width: 960px) { .charts { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body data-page="compare">
+  <div class="shell">
+    <section class="hero">
+      <h1>Provider Compare</h1>
+      <p>同窗口横向观察 availability、latency、TTFT、TPS、cached tokens 与最新 custom eval 分数。</p>
+    </section>
+    <nav>
+      <a href="/">Dashboard</a>
+      <a href="/compare">Compare</a>
+      <a href="/evals">Evals</a>
+    </nav>
+    <section class="panel">
+      <h2>Compare Table</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Provider</th>
+            <th>Model</th>
+            <th>Availability</th>
+            <th>Latency</th>
+            <th>TTFT</th>
+            <th>TPS</th>
+            <th>Cached Tokens</th>
+            <th>Latest Eval</th>
+          </tr>
+        </thead>
+        <tbody id="compare-table-body"></tbody>
+      </table>
+    </section>
+    <section class="charts">
+      <article class="panel"><h2>Avg Latency</h2><div class="chart" id="chart-latency"></div></article>
+      <article class="panel"><h2>Avg TTFT</h2><div class="chart" id="chart-compare-ttft"></div></article>
+      <article class="panel"><h2>Avg TPS</h2><div class="chart" id="chart-compare-tps"></div></article>
+      <article class="panel"><h2>Latest Eval Score</h2><div class="chart" id="chart-eval-score"></div></article>
+    </section>
+  </div>
+</body>
+</html>

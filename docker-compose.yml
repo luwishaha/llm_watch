@@ -1,0 +1,12 @@
+services:
+  llm-watch:
+    build: .
+    container_name: llm-watch
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./datasets:/app/datasets:ro
+    restart: unless-stopped

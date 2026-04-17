@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>llm-watch Evals</title>
+  <script defer src="/static/app.js"></script>
+  <style>
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", sans-serif; background: #f0f3f2; color: #1f2428; }
+    .shell { max-width: 1180px; margin: 0 auto; padding: 24px; }
+    .hero {
+      border-radius: 24px;
+      padding: 24px;
+      background: linear-gradient(125deg, #6b705c, #a5a58d 55%, #ffe8d6);
+      color: white;
+    }
+    nav { display: flex; gap: 12px; margin: 20px 0; flex-wrap: wrap; }
+    nav a { text-decoration: none; color: #3c4745; background: white; padding: 10px 16px; border-radius: 999px; border: 1px solid #dbdfdc; }
+    .panel { background: white; border: 1px solid #d8ddda; border-radius: 20px; padding: 18px; margin-bottom: 16px; box-shadow: 0 10px 28px rgba(27, 38, 35, .05); }
+    .result { border-bottom: 1px solid #ecefeb; padding: 14px 0; }
+    .result:last-child { border-bottom: 0; }
+    .meta { color: #69736f; font-size: 14px; margin-bottom: 8px; }
+    .failures { margin-top: 12px; display: grid; gap: 10px; }
+    .failure {
+      border: 1px solid #ebddd5;
+      background: #fff7f3;
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .failure code { white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body data-page="evals">
+  <div class="shell">
+    <section class="hero">
+      <h1>Eval History</h1>
+      <p>查看 benchmark_small 与 custom_eval 的历史结果，以及最近失败样本摘要。</p>
+    </section>
+    <nav>
+      <a href="/">Dashboard</a>
+      <a href="/compare">Compare</a>
+      <a href="/evals">Evals</a>
+    </nav>
+    <section class="panel">
+      <h2>Recent Eval Results</h2>
+      <div id="eval-results"></div>
+    </section>
+  </div>
+</body>
+</html>
