@@ -16,26 +16,31 @@ function formatMetric(value, suffix = "") {
 
 function initBarChart(elementId, labels, values, name, color) {
   const target = document.getElementById(elementId);
-  if (!target) {
+  if (!target || typeof echarts === "undefined") {
     return;
   }
   const chart = echarts.init(target);
   chart.setOption({
     tooltip: { trigger: "axis" },
     grid: { left: 40, right: 20, top: 30, bottom: 40 },
-    xAxis: { type: "category", data: labels, axisLabel: { rotate: 0 } },
+    xAxis: { type: "category", data: labels },
     yAxis: { type: "value" },
     series: [{ name, type: "bar", data: values, itemStyle: { color, borderRadius: [8, 8, 0, 0] } }],
   });
 }
 
+async function loadProviders() {
+  const payload = await fetchJson("/api/providers");
+  return payload.items || [];
+}
+
 async function loadDashboard() {
   const payload = await fetchJson("/api/dashboard/summary");
   const summary = payload.summary;
-  const availability = summary.availability_24h.filter(item => item.value !== null);
-  const ttft = summary.avg_ttft_24h.filter(item => item.value !== null);
-  const tps = summary.avg_tps_24h.filter(item => item.value !== null);
-  const evals = summary.latest_custom_eval.filter(item => item.score !== null);
+  const availability = [...summary.availability_24h].filter(item => item.value !== null);
+  const ttft = [...summary.avg_ttft_24h].filter(item => item.value !== null);
+  const tps = [...summary.avg_tps_24h].filter(item => item.value !== null);
+  const evals = [...summary.latest_custom_eval].filter(item => item.score !== null);
 
   const bestAvailability = availability.sort((a, b) => b.value - a.value)[0];
   const bestTtft = ttft.sort((a, b) => a.value - b.value)[0];
@@ -56,7 +61,10 @@ async function loadDashboard() {
 }
 
 async function loadCompare() {
-  const payload = await fetchJson("/api/dashboard/compare?providers=deepseek,dashscope,qianfan&window=24h");
+  const providers = await loadProviders();
+  const providerKeys = providers.filter(item => item.enabled).map(item => item.provider);
+  const query = providerKeys.length ? `?providers=${encodeURIComponent(providerKeys.join(","))}&window=24h` : "?window=24h";
+  const payload = await fetchJson(`/api/dashboard/compare${query}`);
   const items = payload.compare.items;
   const body = document.getElementById("compare-table-body");
   body.innerHTML = items.map(item => `

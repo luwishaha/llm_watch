@@ -1,15 +1,16 @@
-import json
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
 from app.models import EvalResult, EvalSet, Model, ProbeRun, Provider
+from app.services.providers import sync_provider_defaults_from_settings
 
 
 def get_summary(db: Session) -> dict:
+    sync_provider_defaults_from_settings(db)
     since = datetime.now(timezone.utc) - timedelta(hours=24)
-    providers = db.scalars(select(Provider).order_by(Provider.id)).all()
+    providers = db.scalars(select(Provider).where(Provider.enabled.is_(True)).order_by(Provider.id)).all()
     availability = []
     avg_ttft = []
     avg_tps = []
@@ -35,14 +36,22 @@ def get_summary(db: Session) -> dict:
 
         ttft = db.scalar(
             select(func.avg(ProbeRun.ttft_ms)).where(
-                and_(ProbeRun.provider_id == provider.id, ProbeRun.run_type == "perf", ProbeRun.created_at >= since)
+                and_(
+                    ProbeRun.provider_id == provider.id,
+                    ProbeRun.run_type == "perf",
+                    ProbeRun.created_at >= since,
+                )
             )
         )
         avg_ttft.append({"provider": provider.provider_key, "value": round(ttft, 2) if ttft is not None else None})
 
         tps = db.scalar(
             select(func.avg(ProbeRun.tokens_per_sec)).where(
-                and_(ProbeRun.provider_id == provider.id, ProbeRun.run_type == "perf", ProbeRun.created_at >= since)
+                and_(
+                    ProbeRun.provider_id == provider.id,
+                    ProbeRun.run_type == "perf",
+                    ProbeRun.created_at >= since,
+                )
             )
         )
         avg_tps.append({"provider": provider.provider_key, "value": round(tps, 2) if tps is not None else None})
@@ -65,8 +74,13 @@ def get_summary(db: Session) -> dict:
 
 
 def get_compare(db: Session, providers: list[str], window: str) -> dict:
+    sync_provider_defaults_from_settings(db)
     since = _parse_window(window)
-    stmt = select(Provider.provider_key, Model.model_key, Model.id, Provider.id).join(Model, Model.provider_id == Provider.id)
+    stmt = (
+        select(Provider.provider_key, Model.model_key, Model.id, Provider.id)
+        .join(Model, Model.provider_id == Provider.id)
+        .where(Provider.enabled.is_(True), Model.enabled.is_(True))
+    )
     if providers:
         stmt = stmt.where(Provider.provider_key.in_(providers))
     stmt = stmt.order_by(Provider.id, Model.id)
@@ -161,9 +175,7 @@ def _availability(db: Session, provider_id: int, since: datetime) -> float | Non
 def _parse_window(window: str) -> datetime:
     now = datetime.now(timezone.utc)
     if window.endswith("h"):
-        hours = int(window[:-1])
-        return now - timedelta(hours=hours)
+        return now - timedelta(hours=int(window[:-1]))
     if window.endswith("d"):
-        days = int(window[:-1])
-        return now - timedelta(days=days)
+        return now - timedelta(days=int(window[:-1]))
     return now - timedelta(hours=24)

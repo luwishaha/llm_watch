@@ -53,9 +53,11 @@ class ProviderModelInfo(BaseModel):
     provider: str
     provider_name: str
     base_url: str
+    default_model: str
     models: list[str]
     enabled: bool
     api_key_configured: bool
+    api_key_env: str
 
 
 class ProvidersResponse(BaseModel):

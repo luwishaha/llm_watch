@@ -33,12 +33,14 @@ class UnifiedChatResult:
 class BaseProviderAdapter:
     provider_key: str = ""
 
-    def __init__(self) -> None:
+    def __init__(self, provider_key: str | None = None) -> None:
+        if provider_key:
+            self.provider_key = provider_key
         self.settings = get_settings()
         cfg = self.settings.provider_defaults[self.provider_key]
-        self.api_key = cfg["api_key"]
-        self.base_url = cfg["base_url"].rstrip("/")
-        self.default_model = cfg["model"]
+        self.api_key = str(cfg["api_key"])
+        self.base_url = str(cfg["base_url"]).rstrip("/")
+        self.default_model = str(cfg["model"])
 
     async def chat(self, model: str, messages: list[dict[str, Any]], stream: bool = False, **kwargs: Any) -> UnifiedChatResult:
         if not self.api_key:
@@ -62,8 +64,8 @@ class BaseProviderAdapter:
 
         headers = self.build_headers()
         url = f"{self.base_url}/chat/completions"
-
         timeout = httpx.Timeout(self.settings.request_timeout_seconds)
+
         async with httpx.AsyncClient(timeout=timeout) as client:
             if stream:
                 return await self._stream_chat(client, url, headers, payload)
@@ -93,9 +95,9 @@ class BaseProviderAdapter:
         latency_ms = (time.perf_counter() - start) * 1000
         raw = self._parse_json_response(response)
         self._raise_for_error_status(response, raw)
-
         content = self.extract_content(raw)
         usage = self.extract_usage(raw)
+
         return UnifiedChatResult(
             success=True,
             provider=self.provider_key,

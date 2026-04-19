@@ -1,6 +1,6 @@
 # llm-watch
 
-`llm-watch` 是一个轻量 Web 平台，用于横向监测 DeepSeek、DashScope、Qianfan 三家大模型 API 的可用性、性能、缓存表现和评测结果。
+`llm-watch` 是一个轻量 Web 平台，用于横向监测多个大模型 API 的可用性、性能、缓存表现和评测结果。
 
 ## 功能概览
 
@@ -11,6 +11,7 @@
 - 统一 adapter 模式封装 provider 差异
 - OpenClaw 本地 skill
 - Docker / Docker Compose 部署
+- `.env` 动态驱动 provider 列表、模型名和 base_url
 
 ## 目录结构
 
@@ -100,31 +101,29 @@ docker compose up --build
 - `GET /api/dashboard/summary`
 - `GET /api/dashboard/compare`
 
-## 数据说明
+## provider 配置方式
 
-- `datasets/benchmark_small.jsonl`
-- `datasets/custom_eval.jsonl`
+内置 provider 仍然支持：
 
-评分方式支持：
+- `DEEPSEEK_*`
+- `DASHSCOPE_*`
+- `QIANFAN_*`
 
-- `contains`
-- `exact`
-- `regex`
-- `json_schema`
+如果你想新增 provider，可以直接在 `.env` 中增加：
 
-## 常用脚本
+- `LLM_WATCH_PROVIDERS=deepseek,dashscope,qianfan,openrouter`
+- `OPENROUTER_API_KEY=...`
+- `OPENROUTER_BASE_URL=...`
+- `OPENROUTER_MODEL=...`
+- `OPENROUTER_NAME=OpenRouter`
+- `OPENROUTER_ENABLED=true`
 
-- `python tasks/run_health_probe.py`
-- `python tasks/run_perf_probe.py`
-- `python tasks/run_cache_probe.py`
-- `python tasks/run_eval.py custom_eval`
-
-## OpenClaw Skill
-
-本地 skill 位于 `skills/llm-watch/SKILL.md`。
+只要是 OpenAI-compatible 的 `/chat/completions` 接口，就可以直接接进来。
 
 ## 注意事项
 
+- `.env` 使用项目绝对路径加载，不依赖当前启动目录
+- `.env` 中的 provider、model、base_url 变更会在接口请求时动态同步到数据库和前端展示
 - 如果 provider 没有返回缓存字段，平台会将 `cached_tokens` 记为 `0`
 - 所有异常会返回统一 JSON 错误结构
 - 首版默认只自动执行 `health probe`

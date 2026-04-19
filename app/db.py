@@ -8,15 +8,16 @@ from app.config import get_settings
 
 
 settings = get_settings()
+database_url = settings.resolved_database_url
 
-if settings.database_url.startswith("sqlite:///./"):
-    db_file = Path(settings.database_url.replace("sqlite:///", "", 1)).resolve()
+if database_url.startswith("sqlite:///"):
+    db_file = Path(database_url.replace("sqlite:///", "", 1))
     db_file.parent.mkdir(parents=True, exist_ok=True)
 
 
 engine = create_engine(
-    settings.database_url,
-    connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},
+    database_url,
+    connect_args={"check_same_thread": False} if database_url.startswith("sqlite") else {},
     future=True,
 )
 

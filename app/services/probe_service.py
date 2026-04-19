@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.base import AdapterError, UnifiedChatResult
 from app.models import AppJob, Model, ProbeRun, Provider
-from app.services.providers import get_adapter, get_provider_and_model
+from app.services.providers import get_adapter, get_provider_and_model, list_enabled_provider_keys
 
 
 HEALTH_MESSAGES = [{"role": "user", "content": "ping"}]
@@ -45,8 +45,9 @@ def ensure_default_jobs(db: Session) -> None:
 
 
 async def run_health_probe(db: Session, providers: list[str]) -> list[dict]:
+    provider_keys = providers or list_enabled_provider_keys(db)
     results = []
-    for provider_key in providers:
+    for provider_key in provider_keys:
         provider, model = get_provider_and_model(db, provider_key)
         adapter = get_adapter(provider_key)
         request_payload = {"messages": HEALTH_MESSAGES, "stream": False, "max_tokens": 8, "temperature": 0}
@@ -61,8 +62,9 @@ async def run_health_probe(db: Session, providers: list[str]) -> list[dict]:
 
 async def run_perf_probe(db: Session, providers: list[str], prompt_template: str, max_tokens: int) -> list[dict]:
     messages = PERF_MESSAGES if prompt_template == "standard_short" else PERF_MESSAGES
+    provider_keys = providers or list_enabled_provider_keys(db)
     results = []
-    for provider_key in providers:
+    for provider_key in provider_keys:
         provider, model = get_provider_and_model(db, provider_key)
         adapter = get_adapter(provider_key)
         request_payload = {"messages": messages, "stream": True, "max_tokens": max_tokens, "temperature": 0.2}
@@ -83,13 +85,12 @@ async def run_perf_probe(db: Session, providers: list[str], prompt_template: str
 
 async def run_cache_probe(db: Session, providers: list[str], prompt_template: str) -> list[dict]:
     messages = CACHE_MESSAGES if prompt_template == "long_prefix_cache" else CACHE_MESSAGES
+    provider_keys = providers or list_enabled_provider_keys(db)
     results = []
-    for provider_key in providers:
+    for provider_key in provider_keys:
         provider, model = get_provider_and_model(db, provider_key)
         adapter = get_adapter(provider_key)
         request_payload = {"messages": messages, "stream": False, "max_tokens": 32, "temperature": 0}
-        cold_result: UnifiedChatResult
-        warm_result: UnifiedChatResult
         try:
             cold_result = await adapter.chat(model.model_key, messages, stream=False, max_tokens=32, temperature=0)
         except AdapterError as exc:
@@ -137,26 +138,24 @@ def list_probe_runs(
         stmt = stmt.where(ProbeRun.run_type == run_type)
     stmt = stmt.order_by(ProbeRun.created_at.desc()).limit(limit)
     rows = db.execute(stmt).all()
-    items = []
-    for run, provider_key, model_key in rows:
-        items.append(
-            {
-                "id": run.id,
-                "provider": provider_key,
-                "model": model_key,
-                "run_type": run.run_type,
-                "success": bool(run.success),
-                "http_status": run.http_status,
-                "latency_ms": run.latency_ms,
-                "ttft_ms": run.ttft_ms,
-                "cached_tokens": run.cached_tokens,
-                "tokens_per_sec": run.tokens_per_sec,
-                "error_type": run.error_type,
-                "error_message": run.error_message,
-                "created_at": run.created_at,
-            }
-        )
-    return items
+    return [
+        {
+            "id": run.id,
+            "provider": provider_key,
+            "model": model_key,
+            "run_type": run.run_type,
+            "success": bool(run.success),
+            "http_status": run.http_status,
+            "latency_ms": run.latency_ms,
+            "ttft_ms": run.ttft_ms,
+            "cached_tokens": run.cached_tokens,
+            "tokens_per_sec": run.tokens_per_sec,
+            "error_type": run.error_type,
+            "error_message": run.error_message,
+            "created_at": run.created_at,
+        }
+        for run, provider_key, model_key in rows
+    ]
 
 
 def update_job_run_state(db: Session, job_key: str, next_run_at: datetime | None = None) -> None:
@@ -204,8 +203,6 @@ def _persist_probe_run(
     db.add(run)
     db.commit()
     db.refresh(run)
-    run.provider = provider
-    run.model = model
     return run
 
 

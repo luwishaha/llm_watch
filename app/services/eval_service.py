@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.base import AdapterError
 from app.models import EvalResult, EvalSet, Model, Provider
-from app.services.providers import get_adapter, get_provider_and_model
+from app.services.providers import get_adapter, get_provider_and_model, list_enabled_provider_keys
 
 
 def load_eval_set(db: Session, eval_key: str) -> EvalSet:
@@ -22,8 +22,9 @@ def load_eval_set(db: Session, eval_key: str) -> EvalSet:
 async def run_eval(db: Session, eval_key: str, providers: list[str]) -> list[dict]:
     eval_set = load_eval_set(db, eval_key)
     samples = _load_jsonl(Path(eval_set.dataset_path))
+    provider_keys = providers or list_enabled_provider_keys(db)
     results = []
-    for provider_key in providers:
+    for provider_key in provider_keys:
         provider, model = get_provider_and_model(db, provider_key)
         adapter = get_adapter(provider_key)
         failures = []
@@ -34,13 +35,12 @@ async def run_eval(db: Session, eval_key: str, providers: list[str]) -> list[dic
                 response = await adapter.chat(model.model_key, messages, stream=False, max_tokens=256, temperature=0)
                 output = response.content.strip()
             except AdapterError as exc:
-                output = ""
                 failures.append(
                     {
                         "case_id": sample["id"],
                         "prompt": sample["prompt"],
                         "expected": sample.get("expected"),
-                        "output": output,
+                        "output": "",
                         "scoring": sample.get("scoring", "contains"),
                         "reason": exc.message,
                     }
@@ -160,14 +160,11 @@ def _score_sample(sample: dict[str, Any], output: str) -> tuple[bool, str]:
     expected = sample.get("expected", "")
 
     if scoring == "exact":
-        ok = output.strip() == str(expected).strip()
-        return ok, "Output does not exactly match expected text."
+        return output.strip() == str(expected).strip(), "Output does not exactly match expected text."
     if scoring == "contains":
-        ok = str(expected) in output
-        return ok, "Output does not contain expected text."
+        return str(expected) in output, "Output does not contain expected text."
     if scoring == "regex":
-        ok = re.search(str(expected), output) is not None
-        return ok, "Output does not match expected regex."
+        return re.search(str(expected), output) is not None, "Output does not match expected regex."
     if scoring == "json_schema":
         schema = sample.get("schema")
         if not schema:

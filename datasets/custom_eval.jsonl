@@ -1,4 +1,4 @@
 {"id":"c1","name":"refund-001","prompt":"你是客服，请回复一句话同意退款，并包含“退款成功”。","expected":"退款成功","scoring":"contains","threshold":1.0,"tags":["customer_service","refund"]}
 {"id":"c2","name":"policy-001","prompt":"请只回答：7天无理由","expected":"7天无理由","scoring":"exact","threshold":1.0,"tags":["policy"]}
 {"id":"c3","name":"order-001","prompt":"请输出：ORDER-2026-001","expected":"ORDER-2026-001","scoring":"regex","threshold":1.0,"tags":["format"]}
-{"id":"c4","name":"json-001","prompt":"请输出 JSON：{\"approved\":true,\"reason\":\"ok\"}","expected":"","scoring":"json_schema","schema":{"type":"object","properties":{"approved":{"type":"boolean"},"reason":{"type":"string"}},"required":["approved","reason"]},"threshold":1.0,"tags":["json"]}
+{"id":"c4","name":"json-001","prompt":"请仅输出一个 JSON 对象，不要使用 Markdown 代码块，不要添加任何额外文字：{\"approved\":true,\"reason\":\"ok\"}","expected":"","scoring":"json_schema","schema":{"type":"object","properties":{"approved":{"type":"boolean"},"reason":{"type":"string"}},"required":["approved","reason"]},"threshold":1.0,"tags":["json"]}
