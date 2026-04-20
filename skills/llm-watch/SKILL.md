@@ -1,40 +1,50 @@
 ---
 name: llm_watch
-description: Query and operate the local LLM API monitoring dashboard, including provider comparison, probe runs, eval runs, and summary reporting.
-metadata:
-  openclaw:
-    os: ["linux"]
-    requires:
-      bins: ["curl"]
+description: Use when the user wants to query or operate the local LLM API monitoring dashboard, including dashboard summary, provider comparison, probe reruns, eval reruns, eval-set listing, and eval-set import through the local service API.
+user-invocable: true
+metadata: {"openclaw":{"os":["win32","linux"],"requires":{"bins":["curl"]}}}
 ---
 
 # LLM Watch Skill
 
-Use this skill when the user wants to:
-
-- compare model API availability, TTFT, generation speed, or cache behavior
-- inspect the latest monitoring summary
-- rerun health/performance/cache probes
-- rerun benchmark or custom evaluation
-- check which provider/model performed best or worst recently
-
-This skill assumes a local monitoring service is running at:
+Use this skill when the user wants to work with the local `llm-watch` service running at:
 
 - `http://127.0.0.1:8000`
 
+## Supported requests
+
+This skill supports the following user intents:
+
+- view the latest dashboard summary
+- compare enabled providers and models
+- inspect recent probe runs
+- rerun `health`, `perf`, or `cache` probes
+- rerun `custom_eval` or `benchmark_small`
+- inspect recent eval results
+- list available eval sets
+- import a new eval set from pasted JSONL text
+- upload a local `.jsonl` eval set file
+- import an eval set and run it immediately
+
 ## Rules
 
-1. Prefer using the local monitoring API instead of calling provider APIs directly.
-2. For read-only questions, call GET endpoints first.
-3. For active operations such as rerunning probes or evals, call POST endpoints.
-4. Keep responses concise and structured:
+1. Prefer the local monitoring API over calling upstream provider APIs directly.
+2. Use `GET` endpoints for read-only questions.
+3. Use `POST` endpoints for actions such as probe reruns, eval reruns, and eval-set imports.
+4. Keep answers concise:
    - short summary first
-   - then key metrics
-   - then notable anomalies
-5. If an endpoint fails, report the HTTP status and response body briefly.
-6. Never expose API keys or environment variable contents.
+   - then key metrics or returned items
+   - then notable anomalies or failures
+5. If a request fails, report the HTTP status and a brief response-body summary.
+6. Never expose API keys or raw environment-variable contents.
 
-## Common operations
+## Command style
+
+On both Windows and Linux, `curl` examples are valid.
+
+On Windows PowerShell, prefer `curl.exe` instead of the `curl` alias if shell behavior is inconsistent.
+
+## Read commands
 
 ### 1) Get dashboard summary
 
@@ -54,7 +64,21 @@ curl -s "http://127.0.0.1:8000/api/dashboard/compare?providers=deepseek,dashscop
 curl -s "http://127.0.0.1:8000/api/probes/runs?limit=20"
 ```
 
-### 4) Trigger health probe
+### 4) Read recent eval results
+
+```bash
+curl -s "http://127.0.0.1:8000/api/evals/results?eval_set=custom_eval&limit=10"
+```
+
+### 5) List eval sets
+
+```bash
+curl -s http://127.0.0.1:8000/api/eval-sets
+```
+
+## Probe commands
+
+### 6) Trigger health probe
 
 ```bash
 curl -s -X POST http://127.0.0.1:8000/api/probes/health/run \
@@ -62,7 +86,7 @@ curl -s -X POST http://127.0.0.1:8000/api/probes/health/run \
   -d '{"providers":["deepseek","dashscope","qianfan"]}'
 ```
 
-### 5) Trigger perf probe
+### 7) Trigger perf probe
 
 ```bash
 curl -s -X POST http://127.0.0.1:8000/api/probes/perf/run \
@@ -70,7 +94,7 @@ curl -s -X POST http://127.0.0.1:8000/api/probes/perf/run \
   -d '{"providers":["deepseek","dashscope","qianfan"],"prompt_template":"standard_short","max_tokens":128}'
 ```
 
-### 6) Trigger cache probe
+### 8) Trigger cache probe
 
 ```bash
 curl -s -X POST http://127.0.0.1:8000/api/probes/cache/run \
@@ -78,7 +102,9 @@ curl -s -X POST http://127.0.0.1:8000/api/probes/cache/run \
   -d '{"providers":["deepseek","dashscope","qianfan"],"prompt_template":"long_prefix_cache"}'
 ```
 
-### 7) Trigger evaluation
+## Eval commands
+
+### 9) Trigger `custom_eval`
 
 ```bash
 curl -s -X POST http://127.0.0.1:8000/api/evals/run \
@@ -86,8 +112,81 @@ curl -s -X POST http://127.0.0.1:8000/api/evals/run \
   -d '{"eval_set":"custom_eval","providers":["deepseek","dashscope","qianfan"]}'
 ```
 
-### 8) Read latest evaluation results
+### 10) Trigger `benchmark_small`
 
 ```bash
-curl -s "http://127.0.0.1:8000/api/evals/results?eval_set=custom_eval&limit=10"
+curl -s -X POST http://127.0.0.1:8000/api/evals/run \
+  -H "Content-Type: application/json" \
+  -d '{"eval_set":"benchmark_small","providers":["deepseek","dashscope","qianfan"]}'
+```
+
+## Eval-set import commands
+
+### 11) Import eval set from pasted JSONL text
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/api/eval-sets/import-text \
+  -H "Content-Type: application/json" \
+  -d '{
+    "eval_key":"demo_set",
+    "eval_name":"Demo Set",
+    "source_type":"custom",
+    "content":"{\"id\":\"1\",\"prompt\":\"hi\",\"expected\":\"hello\",\"scoring\":\"contains\"}",
+    "enabled":true
+  }'
+```
+
+### 12) Upload eval set from local `.jsonl` file
+
+```bash
+curl -s -F "file=@datasets/custom_eval.jsonl" \
+  -F "eval_key=upload_demo" \
+  -F "eval_name=Upload Demo" \
+  -F "source_type=custom" \
+  -F "enabled=true" \
+  http://127.0.0.1:8000/api/eval-sets/upload
+```
+
+### 13) Import then run
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/api/eval-sets/import-text \
+  -H "Content-Type: application/json" \
+  -d '{
+    "eval_key":"demo_set",
+    "eval_name":"Demo Set",
+    "source_type":"custom",
+    "content":"{\"id\":\"1\",\"prompt\":\"hi\",\"expected\":\"hello\",\"scoring\":\"contains\"}",
+    "enabled":true
+  }'
+```
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/api/evals/run \
+  -H "Content-Type: application/json" \
+  -d '{"eval_set":"demo_set","providers":["deepseek","dashscope","qianfan"]}'
+```
+
+## PowerShell examples
+
+### Read dashboard summary
+
+```powershell
+curl.exe -s http://127.0.0.1:8000/api/dashboard/summary
+```
+
+### Trigger perf probe
+
+```powershell
+curl.exe -s -X POST http://127.0.0.1:8000/api/probes/perf/run `
+  -H "Content-Type: application/json" `
+  -d "{\"providers\":[\"deepseek\",\"dashscope\",\"qianfan\"],\"prompt_template\":\"standard_short\",\"max_tokens\":128}"
+```
+
+### Trigger `custom_eval`
+
+```powershell
+curl.exe -s -X POST http://127.0.0.1:8000/api/evals/run `
+  -H "Content-Type: application/json" `
+  -d "{\"eval_set\":\"custom_eval\",\"providers\":[\"deepseek\",\"dashscope\",\"qianfan\"]}"
 ```

@@ -35,7 +35,7 @@
       box-shadow: 0 18px 50px rgba(73, 53, 44, .18);
     }
     .hero h1 { margin: 0 0 8px; font-size: 36px; }
-    .hero p { margin: 0; max-width: 700px; line-height: 1.6; }
+    .hero p { margin: 0; max-width: 760px; line-height: 1.6; }
     nav { display: flex; gap: 12px; margin: 20px 0 24px; flex-wrap: wrap; }
     nav a {
       text-decoration: none;
@@ -54,15 +54,49 @@
       box-shadow: 0 12px 30px rgba(52, 44, 39, .06);
     }
     .metric-label { color: var(--muted); font-size: 14px; }
-    .metric-value { font-size: 30px; font-weight: 700; margin-top: 12px; }
-    .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
-    .panel h2 { margin: 0 0 14px; font-size: 18px; }
-    .chart { width: 100%; height: 320px; }
+    .metric-value { font-size: 26px; font-weight: 700; margin-top: 12px; line-height: 1.2; }
+    .benchmark-panel { margin-top: 16px; }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .panel-header h2 { margin: 0 0 8px; font-size: 20px; }
+    .panel-header p { margin: 0; color: var(--muted); max-width: 620px; }
+    .benchmark-meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      min-width: min(100%, 460px);
+    }
+    .meta-box {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: #fffaf2;
+    }
+    .meta-box span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+    .meta-box strong { font-size: 15px; line-height: 1.4; }
+    .benchmark-layout {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.2fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+    .chart { width: 100%; height: 300px; }
+    .chart-short { height: 260px; }
     .list { margin: 0; padding: 0; list-style: none; }
     .list li { padding: 10px 0; border-bottom: 1px solid var(--line); }
     .list li:last-child { border-bottom: 0; }
+    .benchmark-list strong { display: inline-block; min-width: 150px; }
+    .empty-state { color: var(--muted); padding: 12px 0; }
+    .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+    .panel h2 { margin: 0 0 14px; font-size: 18px; }
     @media (max-width: 960px) {
-      .grid, .panels { grid-template-columns: 1fr; }
+      .grid, .panels, .benchmark-layout, .benchmark-meta { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -70,19 +104,46 @@
   <div class="shell">
     <section class="hero">
       <h1>llm-watch</h1>
-      <p>轻量监测多个大模型 API 的可用性、TTFT、生成速度、缓存效果与评测结果。</p>
+      <p>面向多模型 API 的轻量监控面板，聚合可用性、TTFT、吞吐、goodput 与 benchmark 摘要，帮助你快速判断最近 24 小时的运行质量。</p>
     </section>
     <nav>
       <a href="/">Dashboard</a>
       <a href="/compare">Compare</a>
       <a href="/evals">Evals</a>
     </nav>
+
     <section class="grid" id="summary-cards">
       <article class="card"><div class="metric-label">24h Availability</div><div class="metric-value" id="metric-availability">-</div></article>
       <article class="card"><div class="metric-label">24h Avg TTFT</div><div class="metric-value" id="metric-ttft">-</div></article>
       <article class="card"><div class="metric-label">24h Avg TPS</div><div class="metric-value" id="metric-tps">-</div></article>
       <article class="card"><div class="metric-label">Latest Custom Eval</div><div class="metric-value" id="metric-eval">-</div></article>
+      <article class="card"><div class="metric-label">24h P95 TTFT</div><div class="metric-value" id="metric-p95-ttft">-</div></article>
+      <article class="card"><div class="metric-label">24h P95 Latency</div><div class="metric-value" id="metric-p95-latency">-</div></article>
+      <article class="card"><div class="metric-label">24h Avg TPOT</div><div class="metric-value" id="metric-tpot">-</div></article>
+      <article class="card"><div class="metric-label">24h Goodput</div><div class="metric-value" id="metric-goodput">-</div></article>
     </section>
+
+    <section class="panel benchmark-panel">
+      <div class="panel-header">
+        <div>
+          <h2>Benchmark Summary</h2>
+          <p>benchmark 摘要，可以查看最近一次运行时间、当前 best / worst model，以及各 provider/model 的最近综合分。</p>
+        </div>
+        <div class="benchmark-meta">
+          <div class="meta-box"><span>Last Run</span><strong id="benchmark-last-run">-</strong></div>
+          <div class="meta-box"><span>Best Model</span><strong id="benchmark-best">-</strong></div>
+          <div class="meta-box"><span>Worst Model</span><strong id="benchmark-worst">-</strong></div>
+        </div>
+      </div>
+      <div class="benchmark-layout">
+        <div>
+          <ul class="list benchmark-list" id="benchmark-items"></ul>
+          <div class="empty-state" id="benchmark-empty">暂无 benchmark 数据。</div>
+        </div>
+        <div id="chart-benchmark" class="chart chart-short"></div>
+      </div>
+    </section>
+
     <section class="panels">
       <article class="panel">
         <h2>Availability 24h</h2>

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ErrorDetail(BaseModel):
@@ -143,8 +143,16 @@ class ProbeRunsResponse(BaseModel):
 
 
 class EvalRunRequest(BaseModel):
-    eval_set: Literal["benchmark_small", "custom_eval"]
+    eval_set: str
     providers: list[str] = Field(default_factory=list)
+
+    @field_validator("eval_set")
+    @classmethod
+    def validate_eval_set(cls, value: str) -> str:
+        eval_set = value.strip()
+        if not eval_set:
+            raise ValueError("eval_set must not be empty.")
+        return eval_set
 
 
 class EvalFailureItem(BaseModel):
@@ -189,10 +197,59 @@ class EvalResultsResponse(BaseModel):
     items: list[EvalResultItem]
 
 
+class EvalSetItem(BaseModel):
+    eval_key: str
+    eval_name: str
+    source_type: str
+    dataset_path: str
+    enabled: bool
+    created_at: datetime
+
+
+class EvalSetImportRequest(BaseModel):
+    eval_key: str
+    eval_name: str
+    source_type: str
+    content: str
+    enabled: bool = True
+
+
+class EvalSetListResponse(BaseModel):
+    success: bool = True
+    items: list[EvalSetItem]
+
+
+class EvalSetImportResponse(BaseModel):
+    success: bool = True
+    status: str
+    sample_count: int
+    item: EvalSetItem
+
+
 class MetricPoint(BaseModel):
     provider: str
     value: float | None = None
     score: float | None = None
+
+
+class BenchmarkSummaryItem(BaseModel):
+    provider: str
+    model: str
+    score: float
+    run_at: datetime | None = None
+
+
+class BenchmarkModelSummary(BaseModel):
+    provider: str
+    model: str
+    score: float
+
+
+class BenchmarkSummaryData(BaseModel):
+    last_run_at: datetime | None = None
+    best_model: BenchmarkModelSummary | None = None
+    worst_model: BenchmarkModelSummary | None = None
+    items: list[BenchmarkSummaryItem] = Field(default_factory=list)
 
 
 class DashboardSummaryData(BaseModel):
@@ -200,6 +257,11 @@ class DashboardSummaryData(BaseModel):
     avg_ttft_24h: list[MetricPoint]
     avg_tps_24h: list[MetricPoint]
     latest_custom_eval: list[MetricPoint]
+    p95_ttft_24h: list[MetricPoint]
+    p95_latency_24h: list[MetricPoint]
+    avg_tpot_24h: list[MetricPoint]
+    goodput_24h: list[MetricPoint]
+    latest_benchmark_summary: BenchmarkSummaryData
 
 
 class DashboardSummaryResponse(BaseModel):
@@ -213,7 +275,11 @@ class CompareTableRow(BaseModel):
     availability: float | None = None
     avg_latency_ms: float | None = None
     avg_ttft_ms: float | None = None
+    p95_ttft_ms: float | None = None
+    p95_latency_ms: float | None = None
     avg_tps: float | None = None
+    avg_tpot_ms: float | None = None
+    goodput: float | None = None
     avg_cached_tokens: float | None = None
     latest_eval_score: float | None = None
 
